@@ -19,6 +19,7 @@ model Statement {
   to    BigInt
   amout BigInt
   flag  Boolean
+  key   String  @unique()
 }
 
 model StatementLog {

@@ -1,57 +1,20 @@
 import { randomUUID } from "node:crypto";
 
 import { Request, Response } from "express";
-import { StatementService } from "../services/statement";
-
-interface Transaction {
-  from: bigint;
-  to: bigint;
-  amout: bigint;
-}
-
-interface InvalidTransaction {
-  id: number;
-  error: string;
-}
+import { StatementService } from "@services/statement";
+import { Transaction } from "@services/statement/types";
 
 export class StatementController {
   static async upload(req: Request, res: Response) {
-    const transactions = (req.body?.transactions as Transaction[]) || [];
-    if (!transactions)
+    const statement = (req.body?.statement as Transaction[]) || [];
+    if (!statement)
       return res.status(404).json({
         error: "File not found",
       });
 
-    let valid = 0;
-    const invalid: any[] = [];
-    for (const transaction of transactions) {
-      const _transaction = await StatementService.create({
-        from: transaction.from,
-        to: transaction.to,
-        amout: transaction.amout,
-      });
+    const fileName = randomUUID();
+    const uploadResponse = await StatementService.exec(fileName, statement);
 
-      if (_transaction?.data) {
-        valid++;
-        continue;
-      }
-
-      const log = await StatementService.log({
-        file: randomUUID(),
-        from: transaction.from,
-        to: transaction.to,
-        amout: transaction.amout,
-        error: _transaction.error,
-      });
-
-      invalid.push({ id: log.id, error: log.error });
-    }
-
-    return res.status(200).json({
-      data: {
-        count: valid,
-        errors: invalid,
-      },
-    });
+    return res.status(200).json(uploadResponse);
   }
 }
